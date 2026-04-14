@@ -1,9 +1,10 @@
-import json
 import logging
+from datetime import datetime
 from email.utils import parsedate_to_datetime
 from xml.etree import ElementTree
 
 import aiohttp
+import piexif
 
 log = logging.getLogger(__name__)
 
@@ -20,18 +21,7 @@ PROPFIND_BODY = """<?xml version="1.0" encoding="utf-8" ?>
   </d:prop>
 </d:propfind>"""
 
-METADATA_PROPFIND_BODY = """<?xml version="1.0" encoding="utf-8" ?>
-<d:propfind xmlns:d="DAV:" xmlns:oc="http://owncloud.org/ns" xmlns:nc="http://nextcloud.org/ns">
-  <d:prop>
-    <d:getcontentlength/>
-    <nc:creation_time/>
-    <nc:upload_time/>
-    <nc:metadata_photos_size/>
-    <nc:metadata_photos_gps/>
-    <nc:metadata-photos-ifd0/>
-    <nc:metadata-photos-exif/>
-  </d:prop>
-</d:propfind>"""
+EXIF_RANGE = 'bytes=0-65535'  # first 64 KB — enough for all EXIF headers
 
 
 def _dav_url(nextcloud_url: str, username: str, folder_path: str) -> str:
@@ -120,100 +110,112 @@ async def fetch_photo_metadata(
     app_token: str,
     file_path: str,
 ) -> dict:
-    """Fetch rich EXIF/photo metadata for a single file via PROPFIND Depth:0.
+    """Read EXIF metadata directly from the file via a 64 KB range request.
 
-    Returns a dict with whatever Nextcloud's metadata extractor has indexed.
-    Fields depend on Nextcloud version and whether the Photos app is active.
+    Works regardless of whether Nextcloud's Photos indexer has run.
+    Non-JPEG files (PNG, WebP, …) silently return only file_size.
     """
     url = _dav_url(nextcloud_url, username, file_path)
     auth = aiohttp.BasicAuth(username, app_token)
-    ns = {'d': 'DAV:', 'oc': 'http://owncloud.org/ns', 'nc': 'http://nextcloud.org/ns'}
 
     async with aiohttp.ClientSession() as session:
-        async with session.request(
-            'PROPFIND', url,
-            data=METADATA_PROPFIND_BODY,
-            headers={'Depth': '0', 'Content-Type': 'application/xml'},
+        async with session.get(
+            url,
             auth=auth,
-            timeout=aiohttp.ClientTimeout(total=10),
+            headers={'Range': EXIF_RANGE},
+            timeout=aiohttp.ClientTimeout(total=15),
         ) as resp:
-            if resp.status not in (200, 207):
-                log.warning('Metadata PROPFIND returned %s for %s', resp.status, file_path)
+            if resp.status not in (200, 206):
+                log.warning('Metadata range GET returned %s for %s', resp.status, file_path)
                 return {}
-            content = await resp.read()
-
-    tree = ElementTree.fromstring(content)
-    response = tree.find('d:response', ns)
-    if not response:
-        return {}
+            data = await resp.read()
+            # Content-Range: bytes 0-65535/4821532  →  total file size
+            content_range = resp.headers.get('Content-Range', '')
 
     meta: dict = {}
 
-    # File size (bytes)
-    raw_size = response.findtext('.//d:getcontentlength', namespaces=ns)
-    if raw_size:
+    # File size from Content-Range header
+    if '/' in content_range:
         try:
-            meta['file_size'] = int(raw_size)
+            meta['file_size'] = int(content_range.split('/')[-1])
         except ValueError:
             pass
 
-    # Capture date (Unix timestamp — EXIF DateTimeOriginal via nc:creation_time)
-    raw_creation = response.findtext('.//nc:creation_time', namespaces=ns)
-    if raw_creation:
+    # EXIF — JPEG/TIFF only; skip silently for other formats
+    ext = file_path.rsplit('.', 1)[-1].lower() if '.' in file_path else ''
+    if ext not in ('jpg', 'jpeg', 'tif', 'tiff'):
+        return meta
+
+    try:
+        exif = piexif.load(data)
+    except Exception:
+        return meta
+
+    ifd0 = exif.get('0th', {})
+    exif_ifd = exif.get('Exif', {})
+    gps_ifd = exif.get('GPS', {})
+
+    # Camera make / model
+    raw_make = ifd0.get(piexif.ImageIFD.Make)
+    raw_model = ifd0.get(piexif.ImageIFD.Model)
+    if raw_make:
+        meta['camera_make'] = raw_make.decode('utf-8', errors='ignore').strip('\x00 ')
+    if raw_model:
+        meta['camera_model'] = raw_model.decode('utf-8', errors='ignore').strip('\x00 ')
+
+    # Capture date  (format: b'2024:04:10 14:30:00')
+    raw_dt = exif_ifd.get(piexif.ExifIFD.DateTimeOriginal)
+    if raw_dt:
         try:
-            meta['date_ts'] = int(raw_creation)
-        except ValueError:
+            meta['date_ts'] = int(
+                datetime.strptime(raw_dt.decode(), '%Y:%m:%d %H:%M:%S').timestamp()
+            )
+        except Exception:
             pass
 
-    # Upload date (Unix timestamp)
-    raw_upload = response.findtext('.//nc:upload_time', namespaces=ns)
-    if raw_upload:
-        try:
-            meta['upload_ts'] = int(raw_upload)
-        except ValueError:
-            pass
+    # Exposure triangle
+    exp = exif_ifd.get(piexif.ExifIFD.ExposureTime)
+    if exp and exp[1]:
+        meta['shutter_speed'] = exp[0] / exp[1]
 
-    # Photo dimensions — JSON: {"width": 4032, "height": 3024}
-    raw_size_json = response.findtext('.//nc:metadata_photos_size', namespaces=ns)
-    if raw_size_json:
-        try:
-            size_data = json.loads(raw_size_json)
-            meta['width'] = size_data.get('width')
-            meta['height'] = size_data.get('height')
-        except (json.JSONDecodeError, AttributeError):
-            pass
+    fn = exif_ifd.get(piexif.ExifIFD.FNumber)
+    if fn and fn[1]:
+        meta['aperture'] = round(fn[0] / fn[1], 1)
 
-    # GPS — JSON: {"latitude": 50.85, "longitude": 4.35, "altitude": 12.0}
-    raw_gps = response.findtext('.//nc:metadata_photos_gps', namespaces=ns)
-    if raw_gps:
-        try:
-            gps = json.loads(raw_gps)
-            meta['gps_lat'] = gps.get('latitude')
-            meta['gps_lon'] = gps.get('longitude')
-            meta['gps_alt'] = gps.get('altitude')
-        except (json.JSONDecodeError, AttributeError):
-            pass
+    iso = exif_ifd.get(piexif.ExifIFD.ISOSpeedRatings)
+    if iso is not None:
+        meta['iso'] = iso
 
-    # Camera make/model — JSON: {"Make": "Apple", "Model": "iPhone 15 Pro"}
-    raw_ifd0 = response.findtext('.//nc:metadata-photos-ifd0', namespaces=ns)
-    if raw_ifd0:
-        try:
-            ifd0 = json.loads(raw_ifd0)
-            meta['camera_make'] = ifd0.get('Make')
-            meta['camera_model'] = ifd0.get('Model')
-        except (json.JSONDecodeError, AttributeError):
-            pass
+    fl = exif_ifd.get(piexif.ExifIFD.FocalLength)
+    if fl and fl[1]:
+        meta['focal_length'] = fl[0] / fl[1]
 
-    # Exposure data — JSON: {"FNumber": 1.78, "ExposureTime": 0.008, "ISOSpeedRatings": 400, "FocalLength": 24.0}
-    raw_exif = response.findtext('.//nc:metadata-photos-exif', namespaces=ns)
-    if raw_exif:
+    # Pixel dimensions (Exif IFD is authoritative for JPEGs)
+    px_w = exif_ifd.get(piexif.ExifIFD.PixelXDimension)
+    px_h = exif_ifd.get(piexif.ExifIFD.PixelYDimension)
+    if px_w and px_h:
+        meta['width'] = px_w
+        meta['height'] = px_h
+
+    # GPS  (degrees/minutes/seconds rationals → decimal)
+    if gps_ifd:
         try:
-            exif = json.loads(raw_exif)
-            meta['aperture'] = exif.get('FNumber')
-            meta['shutter_speed'] = exif.get('ExposureTime')
-            meta['iso'] = exif.get('ISOSpeedRatings')
-            meta['focal_length'] = exif.get('FocalLength')
-        except (json.JSONDecodeError, AttributeError):
+            lat_r = gps_ifd.get(piexif.GPSIFD.GPSLatitude)
+            lon_r = gps_ifd.get(piexif.GPSIFD.GPSLongitude)
+            lat_ref = (gps_ifd.get(piexif.GPSIFD.GPSLatitudeRef) or b'N').decode()
+            lon_ref = (gps_ifd.get(piexif.GPSIFD.GPSLongitudeRef) or b'E').decode()
+            if lat_r and lon_r:
+                lat = _dms(lat_r) * (-1 if lat_ref == 'S' else 1)
+                lon = _dms(lon_r) * (-1 if lon_ref == 'W' else 1)
+                meta['gps_lat'] = lat
+                meta['gps_lon'] = lon
+        except Exception:
             pass
 
     return meta
+
+
+def _dms(rational_tuple) -> float:
+    """Convert EXIF GPS (deg, min, sec) rationals to decimal degrees."""
+    d, m, s = rational_tuple
+    return d[0] / d[1] + m[0] / m[1] / 60 + s[0] / s[1] / 3600
