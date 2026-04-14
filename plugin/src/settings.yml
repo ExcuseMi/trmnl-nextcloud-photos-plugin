@@ -8,7 +8,7 @@ framework_version:
 serverless_language: 
 polling_url: https://trmnl.bettens.dev/nextcloud/image
 polling_headers: 'Content-Type: application/json'
-polling_body: '{"plugin_setting_id":"{{ trmnl.plugin_settings.id }}","nextcloud_url":"{{ trmnl.plugin_settings.custom_fields_values.nextcloud_url }}","username":"{{ trmnl.plugin_settings.custom_fields_values.username }}","token":"{{ trmnl.plugin_settings.custom_fields_values.app_token }}","folder":"{{ trmnl.plugin_settings.custom_fields_values.folder_path }}","mode":"{{ trmnl.plugin_settings.custom_fields_values.selection_mode }}","recursive":"{{ trmnl.plugin_settings.custom_fields_values.recursive }}"}'
+polling_body: '{"nextcloud_url":"{{ trmnl.plugin_settings.custom_fields_values.nextcloud_url }}","username":"{{ trmnl.plugin_settings.custom_fields_values.username }}","token":"{{ trmnl.plugin_settings.custom_fields_values.app_token }}","folder":"{{ trmnl.plugin_settings.custom_fields_values.folder_path }}","mode":"{{ trmnl.plugin_settings.custom_fields_values.selection_mode }}","recursive":"{{ trmnl.plugin_settings.custom_fields_values.recursive }}"}'
 id: 285470
 custom_fields:
 - keyname: author_info
@@ -23,27 +23,31 @@ custom_fields:
   name: Nextcloud URL
   description: Your Nextcloud instance URL
   placeholder: https://nextcloud.example.com
+  group: Connection
   optional: false
 - keyname: username
   field_type: string
   name: Username
   description: Nextcloud username
   placeholder: your_username
+  group: Connection
   optional: false
 - keyname: app_token
   field_type: password
   name: App Password / Token
   description: 'Generate in Nextcloud: Settings → Security → App passwords'
+  group: Connection
   optional: false
 - keyname: folder_path
   field_type: string
   name: Folder Path
   description: Path to the folder containing images (relative to your files root)
   placeholder: "/Photos/Wallpapers"
+  group: Images
   optional: false
 - keyname: selection_mode
   field_type: select
-  name: Image Selection
+  name: Selection Mode
   description: How to pick the image to display
   options:
   - Sequential: sequential
@@ -52,24 +56,28 @@ custom_fields:
   - Newest: newest
   - Oldest: oldest
   default: sequential
+  group: Images
   optional: true
 - keyname: recursive
   field_type: boolean
   name: Include Subfolders
   description: Scan subfolders recursively for images
-  default: true
+  default: 'true'
+  group: Images
   optional: true
 - keyname: fill_screen
   field_type: boolean
   name: Fill Screen
   description: Cover the full display (may crop). Off = fit within display (preserves full image).
-  default: false
+  default: 'false'
+  group: Display
   optional: true
 - keyname: hide_titlebar
   field_type: boolean
   name: Hide Title Bar
   description: Remove the title bar for a cleaner full-image display.
-  default: false
+  default: 'false'
+  group: Display
   optional: true
 name: Nextcloud Image
 refresh_interval: 60
