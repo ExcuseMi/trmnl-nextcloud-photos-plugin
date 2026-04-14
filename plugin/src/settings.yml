@@ -79,6 +79,7 @@ custom_fields:
   - Megapixels: dimensions
   - File size: filesize
   - Filename: filename
+  - Parent folder: folder
   - Photo count: count
   optional: true
 name: Nextcloud Images

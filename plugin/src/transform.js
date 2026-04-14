@@ -5,9 +5,8 @@ function transform(data) {
     ? (m.camera_make ? m.camera_make + ' ' + m.camera_model : m.camera_model)
     : null;
 
-  const megapixels = (m.width && m.height)
-    ? Math.round(m.width * m.height / 1e6) + ' MP'
-    : null;
+  const mpValue = (m.width && m.height) ? Math.round(m.width * m.height / 1e6) : 0;
+  const megapixels = mpValue > 0 ? mpValue + ' MP' : null;
 
   const dimensions = (m.width && m.height)
     ? m.width + '×' + m.height
@@ -33,7 +32,8 @@ function transform(data) {
     },
     meta: {
       date_ts:    m.date_ts || null,
-      filename:   data.image_path ? data.image_path.split('/').pop() : null,
+      filename:   data.image_path ? decodeURIComponent(data.image_path.split('/').pop()) : null,
+      folder:     _parentFolder(data.image_path),
       camera:     camera,
       aperture:   aperture,
       shutter:    shutter,
@@ -52,6 +52,13 @@ function transform(data) {
 function _shutter(s) {
   if (s >= 1) return s + 's';
   return '1/' + Math.round(1 / s) + 's';
+}
+
+function _parentFolder(path) {
+  if (!path) return null;
+  const parts = path.split('/').filter(Boolean);
+  if (parts.length < 2) return null;
+  return decodeURIComponent(parts[parts.length - 2]);
 }
 
 function _fileSize(bytes) {

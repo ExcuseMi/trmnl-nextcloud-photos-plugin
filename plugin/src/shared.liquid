@@ -25,6 +25,9 @@
   if fields contains 'filename' and meta.filename
     assign has_meta = true
   endif
+  if fields contains 'folder' and meta.folder
+    assign has_meta = true
+  endif
   if fields contains 'gps' and meta.gps
     assign has_meta = true
   endif
@@ -32,33 +35,64 @@
     assign has_meta = true
   endif
 %}
-<div class="layout layout--stretch layout--center gap--none m--0 p--0 {{ image.bg_class }}">
+
+<style>
+  .nc-image-container img {
+    height: 100%;
+    object-fit: {% if canvas_mode == 'true' %}cover{% else %}contain{% endif %};
+  }
+  .nc-meta-overlay {
+    position: absolute;
+    bottom: 5px;
+    left: 5px;
+    background-color: black;
+    width: auto !important;
+    color: white;
+    padding: 5px 20px;
+    border-radius: 7px;
+    z-index: 10;
+  }
+</style>
+
+<div class="layout layout--stretch layout--center gap--none m--0 p--0 {{ image.bg_class }}" style="position: relative;">
   {% if image.url %}
-    <div class="stretch" style="display: grid;">
-      <img class="image image-dither {% if canvas_mode == 'true' %}image--cover{% else %}image--contain{% endif %} {% unless canvas_mode == 'true' %}rounded{% endunless %}"
-        style="grid-area: 1/1; {% if canvas_mode == 'true' %}object-position: center;{% endif %}"
-        src="{{ image.url }}" alt="{{ image.path }}" />
-      {% if has_meta and view < 3 %}
-        <div class="bg--black rounded p--xsmall m--xsmall" style="grid-area: 1/1; align-self: end; justify-self: start;">
-          <div class="flex flex--row flex--wrap gap--xsmall">
-            {% if fields contains 'date' and meta.date_ts %}<span class="label label--small text--white">{{ meta.date_ts | date: "%b %-d, %Y" }}</span>{% endif %}
-            {% if fields contains 'gps' and meta.gps %}<span class="label label--small text--white">{{ meta.gps }}</span>{% endif %}
-            {% if fields contains 'camera' and meta.camera %}<span class="label label--small text--white">{{ meta.camera }}</span>{% endif %}
-            {% if fields contains 'exposure' and meta.exposure %}<span class="label label--small text--white">{{ meta.exposure }}</span>{% endif %}
-            {% if fields contains 'focal' and meta.focal %}<span class="label label--small text--white">{{ meta.focal }}</span>{% endif %}
-            {% if fields contains 'dimensions' and meta.megapixels %}<span class="label label--small text--white">{{ meta.megapixels }}</span>{% endif %}
-            {% if fields contains 'filesize' and meta.file_size %}<span class="label label--small text--white">{{ meta.file_size }}</span>{% endif %}
-            {% if fields contains 'filename' and meta.filename %}<span class="label label--small text--white">{{ meta.filename }}</span>{% endif %}
-            {% if fields contains 'count' %}
-              {% if image.seq_position %}<span class="label label--small text--white">{{ image.seq_position }} / {{ image.folder_count }}</span>
-              {% else %}<span class="label label--small text--white">{{ image.folder_count }} photos</span>{% endif %}
-            {% endif %}
+    <div class="nc-image-container layout layout--col gap--space-between" style="height: 100%; width: 100%;">
+      <img class="nc-image-file image-dither {% if canvas_mode == 'true' %}image--cover{% else %}image--contain{% endif %}" src="{{ image.url }}">
+    </div>
+
+    {% if has_meta %}
+      <div class="grid nc-meta-overlay">
+        <div class="col--span-1">
+          <div class="item">
+            <div class="content flex flex--col gap--none">
+              {% if fields contains 'filename' and meta.filename %}
+                <span class="title title--small text--white">{{ meta.filename }}</span>
+              {% endif %}
+              
+              {% if fields contains 'folder' and meta.folder %}
+                <span class="label label--small text--white opacity--80">{{ meta.folder }}</span>
+              {% endif %}
+              
+              <div class="flex flex--col gap--none">
+                {% if fields contains 'date' and meta.date_ts %}<span class="description text--white">{{ meta.date_ts | date: "%b %-d, %Y" }}</span>{% endif %}
+                {% if fields contains 'gps' and meta.gps %}<span class="label label--small text--white">{{ meta.gps }}</span>{% endif %}
+                {% if fields contains 'camera' and meta.camera %}<span class="label label--small text--white">{{ meta.camera }}</span>{% endif %}
+                {% if fields contains 'exposure' and meta.exposure %}<span class="label label--small text--white">{{ meta.exposure }}</span>{% endif %}
+                {% if fields contains 'focal' and meta.focal %}<span class="label label--small text--white">{{ meta.focal }}</span>{% endif %}
+                {% if fields contains 'dimensions' and meta.megapixels %}<span class="label label--small text--white">{{ meta.megapixels }}</span>{% endif %}
+                {% if fields contains 'filesize' and meta.file_size %}<span class="label label--small text--white">{{ meta.file_size }}</span>{% endif %}
+                {% if fields contains 'count' %}
+                  {% if image.seq_position %}<span class="label label--small text--white">{{ image.seq_position }} / {{ image.folder_count }}</span>
+                  {% else %}<span class="label label--small text--white">{{ image.folder_count }} photos</span>{% endif %}
+                {% endif %}
+              </div>
+            </div>
           </div>
         </div>
-      {% endif %}
-    </div>
+      </div>
+    {% endif %}
   {% else %}
-    <div class="layout layout--col flex--center gap--small" style="align-items: center; justify-content: center;">
+    <div class="layout layout--col flex--center gap--small" style="align-items: center; justify-content: center; height: 100%; width: 100%;">
       <span class="label label--small">Nextcloud Image</span>
       <span class="description text--center" data-clamp="4">{{ error | default: 'No images found.' }}</span>
     </div>

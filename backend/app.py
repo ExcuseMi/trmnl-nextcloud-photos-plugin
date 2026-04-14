@@ -91,7 +91,9 @@ async def image():
 
     metadata = {}
     try:
-        metadata = await fetch_photo_metadata(nextcloud_url, username, token, selected['path'])
+        metadata = await fetch_photo_metadata(
+            nextcloud_url, username, token, selected['path'], selected['file_id']
+        )
     except Exception:
         log.exception('Error fetching photo metadata for %s', selected['path'])
 

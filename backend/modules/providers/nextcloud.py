@@ -107,53 +107,175 @@ async def list_images(
     return sorted(images, key=lambda x: x['href'])
 
 
+NC_METADATA_BODY = """<?xml version="1.0" encoding="utf-8" ?>
+<d:propfind xmlns:d="DAV:" xmlns:oc="http://owncloud.org/ns" xmlns:nc="http://nextcloud.org/ns">
+  <d:prop>
+    <d:getlastmodified/>
+    <d:getcontenttype/>
+    <oc:size/>
+    <nc:creation_time/>
+    <nc:width/>
+    <nc:height/>
+    <nc:latitude/>
+    <nc:longitude/>
+    <nc:camera_make/>
+    <nc:camera_model/>
+    <nc:f_number/>
+    <nc:exposure_time/>
+    <nc:iso/>
+    <nc:focal_length/>
+  </d:prop>
+</d:propfind>"""
+
+
 async def fetch_photo_metadata(
     nextcloud_url: str,
     username: str,
     app_token: str,
     file_path: str,
+    file_id: str = None,
 ) -> dict:
-    """Read EXIF metadata directly from the file via a 64 KB range request.
+    """Fetch metadata, prioritizing Nextcloud's own indexed properties via PROPFIND.
 
-    Works regardless of whether Nextcloud's Photos indexer has run.
-    Non-JPEG files (PNG, WebP, …) silently return only file_size.
+    Falls back to a 64 KB range request for EXIF if Nextcloud hasn't indexed the file.
+    Uses file_id to fetch a small preview for brightness score if EXIF thumbnail is missing.
     """
     url = _dav_url(nextcloud_url, username, file_path)
     auth = aiohttp.BasicAuth(username, app_token)
-
-    async with aiohttp.ClientSession() as session:
-        async with session.get(
-            url,
-            auth=auth,
-            headers={'Range': EXIF_RANGE},
-            timeout=aiohttp.ClientTimeout(total=15),
-        ) as resp:
-            if resp.status not in (200, 206):
-                log.warning('Metadata range GET returned %s for %s', resp.status, file_path)
-                return {}
-            data = await resp.read()
-            # Content-Range: bytes 0-65535/4821532  →  total file size
-            content_range = resp.headers.get('Content-Range', '')
-
     meta: dict = {}
 
-    # File size from Content-Range header
-    if '/' in content_range:
+    # 1. Try Nextcloud PROPFIND first
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.request(
+                'PROPFIND',
+                url,
+                data=NC_METADATA_BODY,
+                headers={'Depth': '0', 'Content-Type': 'application/xml'},
+                auth=auth,
+                timeout=aiohttp.ClientTimeout(total=10),
+            ) as resp:
+                if resp.status in (200, 207):
+                    content = await resp.read()
+                    _extract_nc_meta(content, meta)
+    except Exception:
+        log.exception('Nextcloud PROPFIND failed for %s', file_path)
+
+    # 2. If critical metadata is missing, try EXIF range request
+    # We consider it "missing" if we don't even have basic exposure or camera info
+    needs_exif = not any([meta.get('camera_model'), meta.get('shutter_speed'), meta.get('width')])
+    
+    ext = file_path.rsplit('.', 1)[-1].lower() if '.' in file_path else ''
+    is_jpeg = ext in ('jpg', 'jpeg', 'tif', 'tiff')
+    thumbnail_bytes = None
+
+    if needs_exif and is_jpeg:
         try:
-            meta['file_size'] = int(content_range.split('/')[-1])
-        except ValueError:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(
+                    url,
+                    auth=auth,
+                    headers={'Range': EXIF_RANGE},
+                    timeout=aiohttp.ClientTimeout(total=15),
+                ) as resp:
+                    if resp.status in (200, 206):
+                        data = await resp.read()
+                        
+                        # File size fallback
+                        if not meta.get('file_size'):
+                            content_range = resp.headers.get('Content-Range', '')
+                            if '/' in content_range:
+                                try:
+                                    meta['file_size'] = int(content_range.split('/')[-1])
+                                except ValueError:
+                                    pass
+
+                        exif = piexif.load(data)
+                        thumbnail_bytes = exif.get('thumbnail')
+                        _extract_exif_meta(exif, meta)
+        except Exception:
             pass
 
-    # EXIF — JPEG/TIFF only; skip silently for other formats
-    ext = file_path.rsplit('.', 1)[-1].lower() if '.' in file_path else ''
-    if ext not in ('jpg', 'jpeg', 'tif', 'tiff'):
-        return meta
+    # 3. Brightness score (always try if we don't have it yet)
+    if not thumbnail_bytes and file_id:
+        try:
+            # Fetch a tiny preview for brightness calculation
+            preview_url = f"{nextcloud_url.rstrip('/')}/index.php/core/preview?fileId={file_id}&x=32&y=32&a=1&forceIcon=0"
+            async with aiohttp.ClientSession() as session:
+                async with session.get(preview_url, auth=auth, timeout=aiohttp.ClientTimeout(total=10)) as resp:
+                    if resp.status == 200:
+                        thumbnail_bytes = await resp.read()
+        except Exception:
+            pass
 
+    if thumbnail_bytes:
+        try:
+            img = Image.open(io.BytesIO(thumbnail_bytes)).convert('L')
+            pixels = list(img.getdata())
+            meta['brightness_score'] = round(sum(pixels) / len(pixels) / 255 * 100)
+        except Exception:
+            pass
+
+    return meta
+
+
+def _extract_nc_meta(xml_content: bytes, meta: dict):
+    ns = {'d': 'DAV:', 'oc': 'http://owncloud.org/ns', 'nc': 'http://nextcloud.org/ns'}
     try:
-        exif = piexif.load(data)
-    except Exception:
-        return meta
+        tree = ElementTree.fromstring(xml_content)
+        response = tree.find('d:response', ns)
+        if response is None:
+            return
 
+        def _get(prop):
+            return response.findtext(f'.//{prop}', namespaces=ns)
+
+        # Basic file info
+        size = _get('oc:size')
+        if size: meta['file_size'] = int(size)
+
+        # Dimensions
+        w, h = _get('nc:width'), _get('nc:height')
+        if w and h:
+            meta['width'], meta['height'] = int(w), int(h)
+
+        # Date
+        ctime = _get('nc:creation_time')
+        if ctime: meta['date_ts'] = int(ctime)
+
+        # GPS
+        lat, lon = _get('nc:latitude'), _get('nc:longitude')
+        if lat and lon:
+            meta['gps_lat'], meta['gps_lon'] = float(lat), float(lon)
+
+        # Camera
+        make, model = _get('nc:camera_make'), _get('nc:camera_model')
+        if make: meta['camera_make'] = make
+        if model: meta['camera_model'] = model
+
+        # Exposure
+        f_num = _get('nc:f_number')
+        if f_num: meta['aperture'] = float(f_num)
+
+        exp_time = _get('nc:exposure_time')
+        if exp_time:
+            # Nextcloud often returns exposure as a float string
+            try:
+                meta['shutter_speed'] = float(exp_time)
+            except ValueError:
+                pass
+
+        iso = _get('nc:iso')
+        if iso: meta['iso'] = int(iso)
+
+        focal = _get('nc:focal_length')
+        if focal: meta['focal_length'] = float(focal)
+
+    except Exception:
+        log.exception('Error parsing Nextcloud metadata XML')
+
+
+def _extract_exif_meta(exif: dict, meta: dict):
     ifd0 = exif.get('0th', {})
     exif_ifd = exif.get('Exif', {})
     gps_ifd = exif.get('GPS', {})
@@ -214,18 +336,6 @@ async def fetch_photo_metadata(
                 meta['gps_lon'] = lon
         except Exception:
             pass
-
-    # Brightness — decode EXIF thumbnail with Pillow
-    thumbnail_bytes = exif.get('thumbnail')
-    if thumbnail_bytes:
-        try:
-            img = Image.open(io.BytesIO(thumbnail_bytes)).convert('L')
-            pixels = list(img.getdata())
-            meta['brightness_score'] = round(sum(pixels) / len(pixels) / 255 * 100)
-        except Exception:
-            pass
-
-    return meta
 
 
 def _dms(rational_tuple) -> float:
