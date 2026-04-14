@@ -85,10 +85,14 @@ function _bgClass(score) {
     [86, 'bg--gray-70'],
     [94, 'bg--gray-75'],
   ];
-  for (const [threshold, cls] of steps) {
-    if (score < threshold) return cls;
+  let cls = 'bg--white';
+  for (const [threshold, c] of steps) {
+    if (score < threshold) {
+      cls = c;
+      break;
+    }
   }
-  return 'bg--white';
+  return `2bit:${cls} 4bit:${cls}`;
 }
 
 function _gps(lat, lon) {

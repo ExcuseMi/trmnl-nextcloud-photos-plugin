@@ -66,24 +66,24 @@
           <div class="item">
             <div class="content flex flex--col gap--none">
               {% if fields contains 'filename' and meta.filename %}
-                <span class="title title--small text--white">{{ meta.filename }}</span>
+                <span class="label label--base lg:label--large text--white">{{ meta.filename }}</span>
               {% endif %}
               
               {% if fields contains 'folder' and meta.folder %}
-                <span class="label label--small text--white opacity--80">{{ meta.folder }}</span>
+                <span class="label label--small lg:label--base text--white opacity--80">{{ meta.folder }}</span>
               {% endif %}
               
               <div class="flex flex--col gap--none">
-                {% if fields contains 'date' and meta.date_ts %}<span class="description text--white">{{ meta.date_ts | date: "%b %-d, %Y" }}</span>{% endif %}
-                {% if fields contains 'gps' and meta.gps %}<span class="label label--small text--white">{{ meta.gps }}</span>{% endif %}
-                {% if fields contains 'camera' and meta.camera %}<span class="label label--small text--white">{{ meta.camera }}</span>{% endif %}
-                {% if fields contains 'exposure' and meta.exposure %}<span class="label label--small text--white">{{ meta.exposure }}</span>{% endif %}
-                {% if fields contains 'focal' and meta.focal %}<span class="label label--small text--white">{{ meta.focal }}</span>{% endif %}
-                {% if fields contains 'dimensions' and meta.megapixels %}<span class="label label--small text--white">{{ meta.megapixels }}</span>{% endif %}
-                {% if fields contains 'filesize' and meta.file_size %}<span class="label label--small text--white">{{ meta.file_size }}</span>{% endif %}
+                {% if fields contains 'date' and meta.date_ts %}<span class="label label--small lg:label--base text--white">{{ meta.date_ts | date: "%b %-d, %Y" }}</span>{% endif %}
+                {% if fields contains 'gps' and meta.gps %}<span class="label label--small lg:label--base text--white">{{ meta.gps }}</span>{% endif %}
+                {% if fields contains 'camera' and meta.camera %}<span class="label label--small lg:label--base text--white">{{ meta.camera }}</span>{% endif %}
+                {% if fields contains 'exposure' and meta.exposure %}<span class="label label--small lg:label--base text--white">{{ meta.exposure }}</span>{% endif %}
+                {% if fields contains 'focal' and meta.focal %}<span class="label label--small lg:label--base text--white">{{ meta.focal }}</span>{% endif %}
+                {% if fields contains 'dimensions' and meta.megapixels %}<span class="label label--small lg:label--base text--white">{{ meta.megapixels }}</span>{% endif %}
+                {% if fields contains 'filesize' and meta.file_size %}<span class="label label--small lg:label--base text--white">{{ meta.file_size }}</span>{% endif %}
                 {% if fields contains 'count' %}
-                  {% if image.seq_position %}<span class="label label--small text--white">{{ image.seq_position }} / {{ image.folder_count }}</span>
-                  {% else %}<span class="label label--small text--white">{{ image.folder_count }} photos</span>{% endif %}
+                  {% if image.seq_position %}<span class="label label--small lg:label--base text--white">{{ image.seq_position }} / {{ image.folder_count }}</span>
+                  {% else %}<span class="label label--small lg:label--base text--white">{{ image.folder_count }} photos</span>{% endif %}
                 {% endif %}
               </div>
             </div>
