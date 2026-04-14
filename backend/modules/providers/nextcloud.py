@@ -82,21 +82,4 @@ async def list_images(
     return sorted(images, key=lambda x: x['href'])
 
 
-async def get_direct_link(nextcloud_url: str, username: str, app_token: str, file_id: str) -> str:
-    """Get an 8-hour public direct download URL via OCS API (no auth required to use it)."""
-    url = f"{nextcloud_url.rstrip('/')}/ocs/v2.php/apps/dav/api/v1/direct"
-    auth = aiohttp.BasicAuth(username, app_token)
-
-    async with aiohttp.ClientSession() as session:
-        async with session.post(
-            url,
-            data={'fileId': file_id},
-            headers={'OCS-APIRequest': 'true', 'Accept': 'application/json'},
-            auth=auth,
-            timeout=aiohttp.ClientTimeout(total=10),
-        ) as resp:
-            resp.raise_for_status()
-            data = await resp.json()
-
-    return data['ocs']['data']['url']
 
