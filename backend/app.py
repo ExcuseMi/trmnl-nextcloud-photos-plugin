@@ -1,5 +1,6 @@
 import logging
 import os
+from email.utils import parsedate_to_datetime
 from urllib.parse import quote, unquote
 
 import aiohttp
@@ -88,8 +89,22 @@ async def image():
         f"&w={width}&h={height}"
     )
 
+    image_date = ''
+    if selected.get('last_modified'):
+        try:
+            dt = parsedate_to_datetime(selected['last_modified'])
+            image_date = dt.strftime('%b %-d, %Y')
+        except Exception:
+            pass
+
     log.info('Serving %s at %dx%d (%s)', selected['path'], width, height, mode)
-    return jsonify({'image_url': image_url, 'image_path': selected['path'], 'error': None})
+    return jsonify({
+        'image_url': image_url,
+        'image_path': selected['path'],
+        'image_date': image_date,
+        'folder_count': len(images),
+        'error': None,
+    })
 
 
 @app.route('/image/preview')

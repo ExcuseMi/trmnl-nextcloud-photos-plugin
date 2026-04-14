@@ -26,3 +26,5 @@ variables:
         image_height: 480
   image_url: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/PNG_transparency_demonstration_1.png/280px-PNG_transparency_demonstration_1.png"
   image_path: "/Photos/Wallpapers/sample.png"
+  image_date: "Apr 14, 2025"
+  folder_count: 42

@@ -8,13 +8,13 @@ framework_version:
 serverless_language: 
 polling_url: https://trmnl.bettens.dev/nextcloud/image
 polling_headers: 'Content-Type: application/json'
-polling_body: '{"nextcloud_url":"{{ trmnl.plugin_settings.custom_fields_values.nextcloud_url }}","username":"{{ trmnl.plugin_settings.custom_fields_values.username }}","token":"{{ trmnl.plugin_settings.custom_fields_values.app_token }}","folder":"{{ trmnl.plugin_settings.custom_fields_values.folder_path }}","mode":"{{ trmnl.plugin_settings.custom_fields_values.selection_mode }}","recursive":"{{ trmnl.plugin_settings.custom_fields_values.recursive }}"}'
+polling_body: '{"nextcloud_url":"{{ trmnl.plugin_settings.custom_fields_values.nextcloud_url }}","username":"{{ trmnl.plugin_settings.custom_fields_values.username }}","token":"{{ trmnl.plugin_settings.custom_fields_values.app_token }}","folder":"{{ trmnl.plugin_settings.custom_fields_values.folder_path }}","mode":"{{ trmnl.plugin_settings.custom_fields_values.selection_mode }}","recursive":"{{ trmnl.plugin_settings.custom_fields_values.recursive }}","device":{"width":{{ trmnl.device.width | default: 800 }},"height":{{ trmnl.device.height | default: 480 }}}}'
 id: 285470
 custom_fields:
 - keyname: author_info
   name: About This Plugin
   field_type: author_bio
-  description: Display images from your Nextcloud instance on your TRMNL e-paper display.
+  description: Display images from your Nextcloud instance on your TRMNL e-paper display.<br><br><strong>Note:</strong> This plugin routes requests through a personal backend (<code>trmnl.bettens.dev</code>). This is required because Nextcloud images are protected by authentication — TRMNL cannot supply credentials when fetching images directly.<br><br>Your credentials are never stored and are only used to retrieve images on demand.
   github_url: https://github.com/ExcuseMi/trmnl-nextcloud-image-plugin
   category: images
   help_text: TRMNL X Ready
@@ -44,7 +44,7 @@ custom_fields:
 - keyname: selection_mode
   field_type: select
   name: Selection Mode
-  description: "Sequential: cycle in order. Shuffle: random order, no repeats. Random: random each time. Newest/Oldest: by date modified."
+  description: 'Sequential: cycle in order. Shuffle: random order, no repeats. Random: random each time. Newest/Oldest: by date modified.'
   options:
   - Sequential: sequential
   - Shuffle: shuffle
@@ -69,6 +69,12 @@ custom_fields:
   field_type: boolean
   name: Hide Title Bar
   description: Remove the title bar for a cleaner full-image display.
+  default: 'false'
+  optional: true
+- keyname: canvas_mode
+  field_type: boolean
+  name: Canvas Mode
+  description: Edge-to-edge photo with no title bar. Overrides Fill Screen and Hide Title Bar.
   default: 'false'
   optional: true
 name: Nextcloud Images
