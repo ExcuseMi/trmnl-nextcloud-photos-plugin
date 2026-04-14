@@ -1,41 +1,53 @@
 {% template main %}
-{% capture logo %}
-<svg class="w--8 h--8" xmlns="http://www.w3.org/2000/svg"
-aria-label="NextCloud" role="img"
-viewBox="0 0 512 512">
-
-<rect
-width="512" height="512"
-rx="15%"
-fill="#0082c9"/>
-
-<g stroke="#ffffff" stroke-width="33" fill="none">
-
-<circle r="40" cy="256" cx="120"/>
-
-<circle r="71" cy="256" cx="256"/>
-
-<circle r="40" cy="256" cx="392"/>
-
-</g>
-
-</svg>
-{% endcapture %}
 {% liquid
-  assign fill_screen = trmnl.plugin_settings.custom_fields_values.fill_screen
-  assign hide_titlebar = trmnl.plugin_settings.custom_fields_values.hide_titlebar
   assign canvas_mode = trmnl.plugin_settings.custom_fields_values.canvas_mode
-  if canvas_mode == 'true'
-    assign fill_screen = 'true'
-    assign hide_titlebar = 'true'
+  assign fields = trmnl.plugin_settings.custom_fields_values.metadata_fields
+
+  assign meta_line = ""
+  assign sep = ""
+
+  if fields contains '"date"' and meta_date_ts
+    assign meta_line = meta_date_ts | date: "%b %-d, %Y"
+    assign sep = " · "
   endif
-  assign show_error = image_url == nil or image_url == blank
+  if fields contains '"camera"' and meta_camera
+    assign meta_line = meta_line | append: sep | append: meta_camera
+    assign sep = " · "
+  endif
+  if fields contains '"exposure"' and meta_exposure
+    assign meta_line = meta_line | append: sep | append: meta_exposure
+    assign sep = " · "
+  endif
+  if fields contains '"focal"' and meta_focal
+    assign meta_line = meta_line | append: sep | append: meta_focal
+    assign sep = " · "
+  endif
+  if fields contains '"dimensions"' and meta_megapixels
+    assign meta_line = meta_line | append: sep | append: meta_megapixels
+    assign sep = " · "
+  endif
+  if fields contains '"filesize"' and meta_file_size
+    assign meta_line = meta_line | append: sep | append: meta_file_size
+    assign sep = " · "
+  endif
+  if fields contains '"gps"' and meta_gps
+    assign meta_line = meta_line | append: sep | append: meta_gps
+    assign sep = " · "
+  endif
+  if fields contains '"count"'
+    assign meta_line = meta_line | append: sep | append: folder_count | append: " photos"
+  endif
 %}
 <div class="layout layout--stretch layout--center gap--none m--0 p--0" style="position: relative;">
   {% if image_url %}
-    <img class="image {% if fill_screen == 'true' %}image--cover{% else %}image--contain{% endif %} image-dither rounded w--auto h--auto w--max-full h--max-full"
-      {% if fill_screen == 'true' %}style="object-position: center;"{% endif %}
+    <img class="image {% if canvas_mode == 'true' %}image--cover{% else %}image--contain{% endif %} image-dither rounded w--auto h--auto w--max-full h--max-full"
+      {% if canvas_mode == 'true' %}style="object-position: center;"{% endif %}
       src="{{ image_url }}" alt="{{ image_path }}" />
+    {% if meta_line != blank and view < 3 %}
+      <div style="position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.65); padding: 5px 10px;">
+        <span style="color: #fff; font-size: 11px; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ meta_line }}</span>
+      </div>
+    {% endif %}
   {% else %}
     <div class="layout layout--col flex--center gap--small" style="align-items: center; justify-content: center;">
       <span class="label label--small">Nextcloud Image</span>
@@ -43,16 +55,4 @@ fill="#0082c9"/>
     </div>
   {% endif %}
 </div>
-
-{% unless hide_titlebar == 'true' %}
-<div class="title_bar">
-  {{ logo }}
-  <span class="title">Nextcloud</span>
-  {% if view < 3 %}
-    <span class="instance">
-      {% if image_date != blank %}{{ image_date }} · {% endif %}{{ folder_count }} photos
-    </span>
-  {% endif %}
-</div>
-{% endunless %}
 {% endtemplate %}

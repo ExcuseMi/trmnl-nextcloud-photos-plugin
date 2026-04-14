@@ -1,6 +1,6 @@
 ---
 strategy: polling
-no_screen_padding: 'yes'
+no_screen_padding: 'no'
 dark_mode: 'no'
 static_data: ''
 polling_verb: post
@@ -37,8 +37,8 @@ custom_fields:
   optional: false
 - keyname: folder_path
   field_type: string
-  name: Folder Path
-  description: Path to the folder containing images (relative to your files root)
+  name: Folder or File Path
+  description: Path to a folder of images, or a single image file. Relative to your files root.
   placeholder: "/Photos/Wallpapers"
   optional: false
 - keyname: selection_mode
@@ -59,23 +59,26 @@ custom_fields:
   description: Scan subfolders recursively for images
   default: 'true'
   optional: true
-- keyname: fill_screen
-  field_type: boolean
-  name: Fill Screen
-  description: Cover the full display (may crop). Off = fit within display (preserves full image).
-  default: 'false'
-  optional: true
-- keyname: hide_titlebar
-  field_type: boolean
-  name: Hide Title Bar
-  description: Remove the title bar for a cleaner full-image display.
-  default: 'false'
-  optional: true
 - keyname: canvas_mode
   field_type: boolean
   name: Canvas Mode
-  description: Edge-to-edge photo with no title bar. Overrides Fill Screen and Hide Title Bar.
+  description: Fill the display edge-to-edge (may crop). Off = fit the full image with padding.
   default: 'false'
+  optional: true
+- keyname: metadata_fields
+  field_type: select
+  multiple: true
+  name: Metadata Overlay
+  description: Choose what appears in the overlay at the bottom of the image. Leave empty to hide the overlay.
+  options:
+  - Date taken: date
+  - Camera: camera
+  - Exposure (f / shutter / ISO): exposure
+  - Focal length: focal
+  - Megapixels: dimensions
+  - File size: filesize
+  - Location: gps
+  - Photo count: count
   optional: true
 name: Nextcloud Images
 refresh_interval: 15

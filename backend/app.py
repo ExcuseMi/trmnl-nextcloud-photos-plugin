@@ -1,12 +1,12 @@
 import logging
 import os
-from email.utils import parsedate_to_datetime
 from urllib.parse import quote, unquote
 
 import aiohttp
 from quart import Quart, Response, jsonify, request
 
-from modules.providers.nextcloud import list_images
+from modules.providers.nextcloud import fetch_photo_metadata, list_images
+from modules.utils.geocode import reverse_geocode
 from modules.utils.ip_whitelist import init_ip_whitelist, require_trmnl_ip
 from modules.utils.state import instance_key, pick_image
 
@@ -89,20 +89,24 @@ async def image():
         f"&w={width}&h={height}"
     )
 
-    image_date = ''
-    if selected.get('last_modified'):
+    metadata = {}
+    try:
+        metadata = await fetch_photo_metadata(nextcloud_url, username, token, selected['path'])
+    except Exception:
+        log.exception('Error fetching photo metadata for %s', selected['path'])
+
+    if metadata.get('gps_lat') is not None and metadata.get('gps_lon') is not None:
         try:
-            dt = parsedate_to_datetime(selected['last_modified'])
-            image_date = dt.strftime('%b %-d, %Y')
+            metadata['location'] = await reverse_geocode(metadata['gps_lat'], metadata['gps_lon'])
         except Exception:
-            pass
+            log.warning('Geocoding failed for %s', selected['path'])
 
     log.info('Serving %s at %dx%d (%s)', selected['path'], width, height, mode)
     return jsonify({
         'image_url': image_url,
         'image_path': selected['path'],
-        'image_date': image_date,
         'folder_count': len(images),
+        'metadata': metadata,
         'error': None,
     })
 

@@ -15,16 +15,22 @@ variables:
       instance_name: "Nextcloud Image"
       strategy: polling
       dark_mode: "no"
-      no_screen_padding: "yes"
+      no_screen_padding: "no"
       custom_fields_values:
         nextcloud_url: "https://nextcloud.example.com"
         username: "testuser"
         app_token: "test-token"
         folder_path: "/Photos"
         selection_mode: "random"
-        image_width: 800
-        image_height: 480
+        canvas_mode: "false"
+        metadata_fields: '["date","camera","exposure","count"]'
   image_url: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/PNG_transparency_demonstration_1.png/280px-PNG_transparency_demonstration_1.png"
   image_path: "/Photos/Wallpapers/sample.png"
-  image_date: "Apr 14, 2025"
   folder_count: 42
+  meta_date_ts: 1744588800
+  meta_camera: "Apple iPhone 15 Pro"
+  meta_exposure: "f/1.78 · 1/120s · ISO\u00A0400"
+  meta_focal: "24mm"
+  meta_megapixels: "12 MP"
+  meta_file_size: "3.2\u00A0MB"
+  meta_gps: "Brussels"
