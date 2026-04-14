@@ -65,11 +65,18 @@ async def list_images(
 
         file_id = response.findtext('.//oc:fileid', namespaces=ns) or ''
         last_modified = response.findtext('.//d:getlastmodified', namespaces=ns) or ''
+        # Extract path relative to /remote.php/dav/files/{username}/
+        dav_prefix = '/remote.php/dav/files/'
+        rel_path = href
+        if dav_prefix in href:
+            after_prefix = href.split(dav_prefix, 1)[1]
+            rel_path = '/' + after_prefix.split('/', 1)[1] if '/' in after_prefix else href
         images.append({
             'href': href,
             'file_id': file_id,
             'last_modified': last_modified,
             'name': href.rsplit('/', 1)[-1],
+            'path': rel_path,
         })
 
     return sorted(images, key=lambda x: x['href'])

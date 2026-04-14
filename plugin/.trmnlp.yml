@@ -25,4 +25,4 @@ variables:
         image_width: 800
         image_height: 480
   image_url: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/PNG_transparency_demonstration_1.png/280px-PNG_transparency_demonstration_1.png"
-  image_name: "sample.png"
+  image_path: "/Photos/Wallpapers/sample.png"

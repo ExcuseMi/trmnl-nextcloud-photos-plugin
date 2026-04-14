@@ -2,15 +2,15 @@
   {
     "name": "with image",
     "input": {
-      "image_url": "https://backend.example.com/image/serve?path=%2Fremote.php%2Fdav%2Ffiles%2Fuser%2FPhotos%2Ftest.jpg",
-      "image_name": "test.jpg"
+      "image_url": "https://trmnl.bettens.dev/nextcloud/image/preview?file_id=12345&nextcloud_url=https%3A%2F%2Fnextcloud.example.com&username=user&token=token",
+      "image_path": "/Photos/Wallpapers/beach.jpg"
     }
   },
   {
     "name": "no image",
     "input": {
       "image_url": null,
-      "image_name": ""
+      "image_path": ""
     }
   }
 ]
