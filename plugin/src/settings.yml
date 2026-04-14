@@ -23,32 +23,28 @@ custom_fields:
   name: Nextcloud URL
   description: Your Nextcloud instance URL
   placeholder: https://nextcloud.example.com
-  group: Connection
   optional: false
 - keyname: username
   field_type: string
   name: Username
   description: Nextcloud username
   placeholder: your_username
-  group: Connection
   optional: false
 - keyname: app_token
   field_type: password
   name: App Password / Token
   description: 'Generate in Nextcloud: Settings → Security → App passwords'
-  group: Connection
   optional: false
 - keyname: folder_path
   field_type: string
   name: Folder Path
   description: Path to the folder containing images (relative to your files root)
   placeholder: "/Photos/Wallpapers"
-  group: Images
   optional: false
 - keyname: selection_mode
   field_type: select
   name: Selection Mode
-  description: How to pick the image to display
+  description: "Sequential: cycle in order. Shuffle: random order, no repeats. Random: random each time. Newest/Oldest: by date modified."
   options:
   - Sequential: sequential
   - Shuffle: shuffle
@@ -56,28 +52,24 @@ custom_fields:
   - Newest: newest
   - Oldest: oldest
   default: sequential
-  group: Images
   optional: true
 - keyname: recursive
   field_type: boolean
   name: Include Subfolders
   description: Scan subfolders recursively for images
   default: 'true'
-  group: Images
   optional: true
 - keyname: fill_screen
   field_type: boolean
   name: Fill Screen
   description: Cover the full display (may crop). Off = fit within display (preserves full image).
   default: 'false'
-  group: Display
   optional: true
 - keyname: hide_titlebar
   field_type: boolean
   name: Hide Title Bar
   description: Remove the title bar for a cleaner full-image display.
   default: 'false'
-  group: Display
   optional: true
-name: Nextcloud Image
-refresh_interval: 60
+name: Nextcloud Images
+refresh_interval: 15

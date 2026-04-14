@@ -25,6 +25,8 @@ fill="#0082c9"/>
   assign fill_screen = trmnl.plugin_settings.custom_fields_values.fill_screen
   assign hide_titlebar = trmnl.plugin_settings.custom_fields_values.hide_titlebar
   assign show_error = image_url == nil or image_url == blank
+  assign folder = trmnl.plugin_settings.custom_fields_values.folder_path
+  assign rel_path = image_path | remove_first: folder | remove_first: '/' | url_decode
 %}
 <div class="layout layout--stretch layout--center gap--none m--0 p--0" style="position: relative;">
   {% if image_url %}
@@ -43,7 +45,7 @@ fill="#0082c9"/>
 <div class="title_bar">
   {{ logo }}
   <span class="title">Nextcloud</span>
-  {% if view < 3 %}<span class="instance">{{ image_path | split: '/' | last }}</span>{% endif %}
+  {% if view < 3 %}<span class="instance">{{ rel_path }}</span>{% endif %}
 </div>
 {% endunless %}
 {% endtemplate %}
