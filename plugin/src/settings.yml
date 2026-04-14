@@ -59,5 +59,12 @@ custom_fields:
   description: Scan subfolders recursively for images
   default: true
   optional: true
+
+- keyname: fill_screen
+  field_type: boolean
+  name: Fill Screen
+  description: Cover the full display (may crop). Off = fit within display (preserves full image).
+  default: false
+  optional: true
 name: Nextcloud Image
 refresh_interval: 60
