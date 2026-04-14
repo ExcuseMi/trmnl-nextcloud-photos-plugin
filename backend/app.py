@@ -1,6 +1,7 @@
 import logging
 import os
 
+import aiohttp
 from quart import Quart, jsonify, request
 
 from modules.providers.nextcloud import get_direct_link, list_images
@@ -26,7 +27,7 @@ async def health():
 @app.route('/image')
 @require_trmnl_ip
 async def image():
-    nextcloud_url = request.args.get('nextcloud_url', '')
+    nextcloud_url = request.args.get('nextcloud_url', '').rstrip('/')
     username = request.args.get('username', '')
     token = request.args.get('token', '')
     folder = request.args.get('folder', '/Photos')
@@ -34,22 +35,61 @@ async def image():
     recursive = request.args.get('recursive', 'true').lower() != 'false'
 
     if not (nextcloud_url and username and token):
-        return jsonify({'image_url': None, 'image_path': '', 'error': 'Missing nextcloud_url, username, or token'}), 400
+        return _error('Missing nextcloud_url, username, or token'), 400
 
     try:
         images = await list_images(nextcloud_url, username, token, folder, recursive=recursive)
-        key = instance_key(nextcloud_url, username, folder)
+    except aiohttp.ClientResponseError as e:
+        if e.status == 401:
+            return _error('Nextcloud authentication failed — check username and app token'), 401
+        if e.status == 404:
+            return _error(f'Folder not found: {folder}'), 404
+        if e.status in (502, 503):
+            return _error('Nextcloud unavailable'), 503
+        log.error('Nextcloud PROPFIND error %s: %s', e.status, e.message)
+        return _error(f'Nextcloud error {e.status}'), 502
+    except aiohttp.ClientConnectorError:
+        return _error(f'Could not connect to Nextcloud at {nextcloud_url}'), 502
+    except aiohttp.ServerTimeoutError:
+        return _error('Nextcloud connection timed out'), 504
+    except Exception as e:
+        log.exception('Error listing images')
+        return _error(str(e)), 500
+
+    if not images:
+        return _error(f'No images found in {folder}')
+
+    key = instance_key(nextcloud_url, username, folder)
+
+    try:
         selected = await pick_image(images, mode, key)
+    except Exception as e:
+        log.exception('Error picking image')
+        return _error(str(e)), 500
 
-        if not selected:
-            return jsonify({'image_url': None, 'image_path': '', 'error': 'No images found'})
+    if not selected:
+        return _error(f'No images found in {folder}')
 
+    try:
         image_url = await get_direct_link(nextcloud_url, username, token, selected['file_id'])
-        return jsonify({'image_url': image_url, 'image_path': selected['path']})
+    except aiohttp.ClientResponseError as e:
+        if e.status == 404:
+            return _error('OCS Direct Link API not available — requires Nextcloud 18+'), 502
+        if e.status == 401:
+            return _error('Nextcloud authentication failed — check username and app token'), 401
+        log.error('OCS direct link error %s', e.status)
+        return _error(f'Failed to get image URL (Nextcloud error {e.status})'), 502
+    except Exception as e:
+        log.exception('Error getting direct link')
+        return _error(str(e)), 500
 
-    except Exception as exc:
-        log.exception('Error fetching image')
-        return jsonify({'image_url': None, 'image_path': '', 'error': str(exc)}), 500
+    log.info('Serving %s (%s)', selected['path'], mode)
+    return jsonify({'image_url': image_url, 'image_path': selected['path'], 'error': None})
+
+
+def _error(message: str) -> 'quart.Response':
+    log.warning('Returning error: %s', message)
+    return jsonify({'image_url': None, 'image_path': '', 'error': message})
 
 
 if __name__ == '__main__':

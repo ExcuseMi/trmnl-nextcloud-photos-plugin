@@ -36,7 +36,7 @@ async def load_state(key: str) -> dict:
                     return json.loads(row[0])
     except Exception as exc:
         log.warning('Could not load state for %s: %s', key, exc)
-    return {'current_index': 0, 'shuffle_order': []}
+    return {'current_index': 0, 'shuffle_order': [], 'last_path': None}
 
 
 async def save_state(key: str, state: dict):
@@ -75,12 +75,12 @@ async def pick_image(images: list[dict], mode: str, key: str) -> dict | None:
             idx = 0
         selected = images[idx]
         state['current_index'] = (idx + 1) % len(images)
+        state['last_path'] = selected['path']
         await save_state(key, state)
         return selected
 
     if mode == 'shuffle':
         order = state.get('shuffle_order', [])
-        # Rebuild if list changed or exhausted
         valid_order = [h for h in order if h in img_map]
         if not valid_order:
             valid_order = hrefs.copy()
@@ -95,7 +95,11 @@ async def pick_image(images: list[dict], mode: str, key: str) -> dict | None:
         selected = img_map[valid_order[idx]]
         state['shuffle_order'] = valid_order
         state['current_index'] = idx + 1
+        state['last_path'] = selected['path']
         await save_state(key, state)
         return selected
 
-    return random.choice(images)
+    selected = random.choice(images)
+    state['last_path'] = selected['path']
+    await save_state(key, state)
+    return selected

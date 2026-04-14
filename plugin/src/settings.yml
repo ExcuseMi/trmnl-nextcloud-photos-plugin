@@ -65,7 +65,6 @@ custom_fields:
   description: Cover the full display (may crop). Off = fit within display (preserves full image).
   default: false
   optional: true
-
 - keyname: hide_titlebar
   field_type: boolean
   name: Hide Title Bar

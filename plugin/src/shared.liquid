@@ -1,7 +1,30 @@
 {% template main %}
+{% capture logo %}
+<svg class="w--8 h--8" xmlns="http://www.w3.org/2000/svg"
+aria-label="NextCloud" role="img"
+viewBox="0 0 512 512">
+
+<rect
+width="512" height="512"
+rx="15%"
+fill="#0082c9"/>
+
+<g stroke="#ffffff" stroke-width="33" fill="none">
+
+<circle r="40" cy="256" cx="120"/>
+
+<circle r="71" cy="256" cx="256"/>
+
+<circle r="40" cy="256" cx="392"/>
+
+</g>
+
+</svg>
+{% endcapture %}
 {% liquid
   assign fill_screen = trmnl.plugin_settings.custom_fields_values.fill_screen
   assign hide_titlebar = trmnl.plugin_settings.custom_fields_values.hide_titlebar
+  assign show_error = image_url == nil or image_url == blank
 %}
 <div class="layout layout--stretch layout--center gap--none m--0 p--0" style="position: relative;">
   {% if image_url %}
@@ -9,16 +32,18 @@
       {% if fill_screen == 'true' %}style="object-position: center;"{% endif %}
       src="{{ image_url }}" alt="{{ image_path }}" />
   {% else %}
-    <div class="flex flex--center">
-      <div class="label">No images found.</div>
+    <div class="layout layout--col flex--center gap--small" style="align-items: center; justify-content: center;">
+      <span class="label label--small">Nextcloud Image</span>
+      <span class="description text--center" data-clamp="4">{{ error | default: 'No images found.' }}</span>
     </div>
   {% endif %}
 </div>
 
 {% unless hide_titlebar == 'true' %}
 <div class="title_bar">
+  {{ logo }}
   <span class="title">Nextcloud</span>
-  <span class="instance">{{ image_path | split: '/' | last }}</span>
+  {% if view < 3 %}<span class="instance">{{ image_path | split: '/' | last }}</span>{% endif %}
 </div>
 {% endunless %}
 {% endtemplate %}
