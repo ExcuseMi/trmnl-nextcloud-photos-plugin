@@ -99,3 +99,4 @@ async def get_direct_link(nextcloud_url: str, username: str, app_token: str, fil
             data = await resp.json()
 
     return data['ocs']['data']['url']
+
