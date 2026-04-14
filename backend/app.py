@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 from urllib.parse import quote, unquote
@@ -8,7 +9,7 @@ from quart import Quart, Response, jsonify, request
 from modules.providers.nextcloud import fetch_photo_metadata, list_images
 from modules.utils.geocode import reverse_geocode
 from modules.utils.ip_whitelist import init_ip_whitelist, require_trmnl_ip
-from modules.utils.state import instance_key, pick_image
+from modules.utils.state import init_db, instance_key, pick_image
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(name)s %(message)s')
 log = logging.getLogger(__name__)
@@ -20,7 +21,10 @@ BACKEND_URL = os.getenv('BACKEND_URL', 'http://localhost:8080')
 
 @app.before_serving
 async def _startup():
-    await init_ip_whitelist()
+    await asyncio.gather(
+        init_db(),
+        init_ip_whitelist()
+    )
 
 
 @app.route('/health')

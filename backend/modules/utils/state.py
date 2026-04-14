@@ -1,24 +1,51 @@
+import asyncio
 import hashlib
 import json
 import logging
 import os
 import random
 
-import aiosqlite
+import asyncpg
 
 log = logging.getLogger(__name__)
 
-DB_PATH = os.getenv('STATE_DB', '/data/state.db')
+DATABASE_URL = os.getenv('DATABASE_URL', 'postgresql://postgres:postgres@localhost:5432/postgres')
+
+_pool = None
 
 
-async def _init_db(db: aiosqlite.Connection):
-    await db.execute("""
-        CREATE TABLE IF NOT EXISTS instance_state (
-            key TEXT PRIMARY KEY,
-            state TEXT NOT NULL
-        )
-    """)
-    await db.commit()
+async def get_pool():
+    global _pool
+    if _pool is None:
+        await init_db()
+    return _pool
+
+
+async def init_db():
+    global _pool
+    if _pool is not None:
+        return _pool
+
+    # Retry logic for startup (Postgres might be booting)
+    for i in range(10):
+        try:
+            _pool = await asyncpg.create_pool(DATABASE_URL)
+            async with _pool.acquire() as conn:
+                await conn.execute("""
+                    CREATE TABLE IF NOT EXISTS instance_state (
+                        key TEXT PRIMARY KEY,
+                        state JSONB NOT NULL
+                    )
+                """)
+            log.info("PostgreSQL connection pool initialized")
+            break
+        except Exception as e:
+            if i == 9:
+                log.error("Failed to connect to PostgreSQL after 10 attempts: %s", e)
+                raise
+            log.warning("PostgreSQL not ready, retrying in 2s... (%d/10)", i + 1)
+            await asyncio.sleep(2)
+    return _pool
 
 
 def instance_key(nextcloud_url: str, username: str, folder_path: str) -> str:
@@ -28,12 +55,11 @@ def instance_key(nextcloud_url: str, username: str, folder_path: str) -> str:
 
 async def load_state(key: str) -> dict:
     try:
-        async with aiosqlite.connect(DB_PATH) as db:
-            await _init_db(db)
-            async with db.execute("SELECT state FROM instance_state WHERE key = ?", (key,)) as cur:
-                row = await cur.fetchone()
-                if row:
-                    return json.loads(row[0])
+        pool = await get_pool()
+        async with pool.acquire() as conn:
+            row = await conn.fetchrow("SELECT state FROM instance_state WHERE key = $1", key)
+            if row:
+                return json.loads(row['state']) if isinstance(row['state'], str) else row['state']
     except Exception as exc:
         log.warning('Could not load state for %s: %s', key, exc)
     return {'current_index': 0, 'shuffle_order': [], 'last_path': None}
@@ -41,13 +67,13 @@ async def load_state(key: str) -> dict:
 
 async def save_state(key: str, state: dict):
     try:
-        async with aiosqlite.connect(DB_PATH) as db:
-            await _init_db(db)
-            await db.execute(
-                "INSERT OR REPLACE INTO instance_state (key, state) VALUES (?, ?)",
-                (key, json.dumps(state)),
+        pool = await get_pool()
+        async with pool.acquire() as conn:
+            await conn.execute(
+                "INSERT INTO instance_state (key, state) VALUES ($1, $2) "
+                "ON CONFLICT (key) DO UPDATE SET state = EXCLUDED.state",
+                key, json.dumps(state),
             )
-            await db.commit()
     except Exception as exc:
         log.warning('Could not save state for %s: %s', key, exc)
 

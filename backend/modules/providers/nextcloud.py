@@ -1,3 +1,4 @@
+import hashlib
 import logging
 from datetime import datetime
 from email.utils import parsedate_to_datetime
@@ -8,6 +9,8 @@ import io
 import aiohttp
 import piexif
 from PIL import Image
+
+from modules.utils.redis_cache import get_cached_json, set_cached_json
 
 log = logging.getLogger(__name__)
 
@@ -41,6 +44,12 @@ async def list_images(
     recursive: bool = True,
 ) -> list[dict]:
     """Return all image entries under folder_path, optionally recursive."""
+    raw_key = f"list:{nextcloud_url}:{username}:{folder_path}:{recursive}"
+    cache_key = hashlib.sha256(raw_key.encode()).hexdigest()
+    cached = await get_cached_json(cache_key)
+    if cached:
+        return cached
+
     auth = aiohttp.BasicAuth(username, app_token)
     depth = 'infinity' if recursive else '1'
 
@@ -104,7 +113,9 @@ async def list_images(
             'path': rel_path,
         })
 
-    return sorted(images, key=lambda x: x['href'])
+    result = sorted(images, key=lambda x: x['href'])
+    await set_cached_json(cache_key, result, ttl=300)  # Cache list for 5 minutes
+    return result
 
 
 NC_METADATA_BODY = """<?xml version="1.0" encoding="utf-8" ?>
@@ -140,6 +151,12 @@ async def fetch_photo_metadata(
     Falls back to a 64 KB range request for EXIF if Nextcloud hasn't indexed the file.
     Uses file_id to fetch a small preview for brightness score if EXIF thumbnail is missing.
     """
+    raw_key = f"meta:{nextcloud_url}:{file_path}:{file_id}"
+    cache_key = hashlib.sha256(raw_key.encode()).hexdigest()
+    cached = await get_cached_json(cache_key)
+    if cached:
+        return cached
+
     url = _dav_url(nextcloud_url, username, file_path)
     auth = aiohttp.BasicAuth(username, app_token)
     meta: dict = {}
@@ -216,6 +233,7 @@ async def fetch_photo_metadata(
         except Exception:
             pass
 
+    await set_cached_json(cache_key, meta, ttl=3600)  # Cache metadata for 1 hour
     return meta
 
 

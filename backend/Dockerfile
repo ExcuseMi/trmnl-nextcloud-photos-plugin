@@ -9,4 +9,4 @@ COPY . .
 
 EXPOSE 8080
 
-CMD ["hypercorn", "--bind", "0.0.0.0:8080", "--workers", "1", "app:app"]
+CMD ["hypercorn", "--bind", "0.0.0.0:8080", "--workers", "3", "app:app"]
