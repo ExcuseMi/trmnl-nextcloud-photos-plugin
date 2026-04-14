@@ -92,6 +92,7 @@ function _bgClass(score) {
       break;
     }
   }
+  // Standard background only for 2-bit and 4-bit screens
   return `bg--white 2bit:${cls} 4bit:${cls}`;
 }
 

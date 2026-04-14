@@ -52,9 +52,9 @@
 
 <div class="layout layout--stretch layout--center gap--none m--0 p--0 {{ image.bg_class }}">
   {% if image.url %}
-    <div class="flex flex--col w--full h--full  flex--center-y">
-      <img class="nc-image-file image-dither w--auto h--auto w--max-full h--max-full {% if canvas_mode == 'true' %}image--cover{% else %}image--contain{% endif %}" src="{{ image.url }}">
-    </div>
+      <img class="image image-dither {% if canvas_mode == 'true' %}image--cover{% else %}image--contain{% endif %} w--auto h--auto w--max-full h--max-full"
+        {% if canvas_mode == 'true' %}style="object-position: center;"{% endif %}
+        src="{{ image.url }}">
 
     {% if has_meta %}
       <div class="nc-meta-overlay">
@@ -65,7 +65,7 @@
               {% endif %}
 
               {% if fields contains 'folder' and meta.folder %}
-                <span class="label label--small text--white opacity--80">{{ meta.folder }}</span>
+                <span class="label label--small text--white">{{ meta.folder }}</span>
               {% endif %}
 
               <div class="flex flex--col gap--none">

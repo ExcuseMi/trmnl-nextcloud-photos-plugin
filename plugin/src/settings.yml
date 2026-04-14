@@ -5,7 +5,7 @@ dark_mode: 'no'
 static_data: ''
 polling_verb: post
 framework_version: 2.3.7
-serverless_language: 
+serverless_language: ''
 polling_url: https://trmnl.bettens.dev/nextcloud/image
 polling_headers: 'Content-Type: application/json'
 polling_body: '{"nextcloud_url":"{{ trmnl.plugin_settings.custom_fields_values.nextcloud_url }}","username":"{{ trmnl.plugin_settings.custom_fields_values.username }}","token":"{{ trmnl.plugin_settings.custom_fields_values.app_token }}","folder":"{{ trmnl.plugin_settings.custom_fields_values.folder_path }}","mode":"{{ trmnl.plugin_settings.custom_fields_values.selection_mode }}","recursive":"{{ trmnl.plugin_settings.custom_fields_values.recursive }}","device":{"width":{{ trmnl.device.width | default: 800 }},"height":{{ trmnl.device.height | default: 480 }}}}'
