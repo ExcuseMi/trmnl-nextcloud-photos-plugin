@@ -30,9 +30,7 @@ async def health():
 @app.route('/image', methods=['POST'])
 @require_trmnl_ip
 async def image():
-    raw = await request.get_data()
     body = await request.get_json(silent=True, force=True) or {}
-    log.info('POST /image content-type=%s body=%s', request.content_type, raw[:200])
     nextcloud_url = body.get('nextcloud_url', '').rstrip('/')
     username = body.get('username', '')
     token = body.get('token', '')
