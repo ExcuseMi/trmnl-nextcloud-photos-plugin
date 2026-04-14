@@ -3,39 +3,6 @@
   assign canvas_mode = trmnl.plugin_settings.custom_fields_values.canvas_mode
   assign fields = trmnl.plugin_settings.custom_fields_values.metadata_fields
 
-  assign bg_class = 'bg--white'
-  if brightness_score < 7
-    assign bg_class = 'bg--black'
-  elsif brightness_score < 14
-    assign bg_class = 'bg--gray-10'
-  elsif brightness_score < 20
-    assign bg_class = 'bg--gray-15'
-  elsif brightness_score < 26
-    assign bg_class = 'bg--gray-20'
-  elsif brightness_score < 32
-    assign bg_class = 'bg--gray-25'
-  elsif brightness_score < 38
-    assign bg_class = 'bg--gray-30'
-  elsif brightness_score < 44
-    assign bg_class = 'bg--gray-35'
-  elsif brightness_score < 50
-    assign bg_class = 'bg--gray-40'
-  elsif brightness_score < 56
-    assign bg_class = 'bg--gray-45'
-  elsif brightness_score < 62
-    assign bg_class = 'bg--gray-50'
-  elsif brightness_score < 68
-    assign bg_class = 'bg--gray-55'
-  elsif brightness_score < 74
-    assign bg_class = 'bg--gray-60'
-  elsif brightness_score < 80
-    assign bg_class = 'bg--gray-65'
-  elsif brightness_score < 86
-    assign bg_class = 'bg--gray-70'
-  elsif brightness_score < 94
-    assign bg_class = 'bg--gray-75'
-  endif
-
   assign has_meta = false
   if fields contains 'date' and meta.date_ts
     assign has_meta = true
@@ -55,6 +22,9 @@
   if fields contains 'filesize' and meta.file_size
     assign has_meta = true
   endif
+  if fields contains 'filename' and meta.filename
+    assign has_meta = true
+  endif
   if fields contains 'gps' and meta.gps
     assign has_meta = true
   endif
@@ -62,25 +32,26 @@
     assign has_meta = true
   endif
 %}
-<div class="layout layout--stretch layout--center gap--none m--0 p--0 {% if brightness_score %}{{ bg_class }}{% endif %}">
-  {% if image_url %}
+<div class="layout layout--stretch layout--center gap--none m--0 p--0 {{ image.bg_class }}">
+  {% if image.url %}
     <div class="stretch" style="display: grid;">
       <img class="image image-dither {% if canvas_mode == 'true' %}image--cover{% else %}image--contain{% endif %} {% unless canvas_mode == 'true' %}rounded{% endunless %}"
         style="grid-area: 1/1; {% if canvas_mode == 'true' %}object-position: center;{% endif %}"
-        src="{{ image_url }}" alt="{{ image_path }}" />
+        src="{{ image.url }}" alt="{{ image.path }}" />
       {% if has_meta and view < 3 %}
         <div class="bg--black rounded p--xsmall m--xsmall" style="grid-area: 1/1; align-self: end; justify-self: start;">
           <div class="flex flex--row flex--wrap gap--xsmall">
             {% if fields contains 'date' and meta.date_ts %}<span class="label label--small text--white">{{ meta.date_ts | date: "%b %-d, %Y" }}</span>{% endif %}
+            {% if fields contains 'gps' and meta.gps %}<span class="label label--small text--white">{{ meta.gps }}</span>{% endif %}
             {% if fields contains 'camera' and meta.camera %}<span class="label label--small text--white">{{ meta.camera }}</span>{% endif %}
             {% if fields contains 'exposure' and meta.exposure %}<span class="label label--small text--white">{{ meta.exposure }}</span>{% endif %}
             {% if fields contains 'focal' and meta.focal %}<span class="label label--small text--white">{{ meta.focal }}</span>{% endif %}
             {% if fields contains 'dimensions' and meta.megapixels %}<span class="label label--small text--white">{{ meta.megapixels }}</span>{% endif %}
             {% if fields contains 'filesize' and meta.file_size %}<span class="label label--small text--white">{{ meta.file_size }}</span>{% endif %}
-            {% if fields contains 'gps' and meta.gps %}<span class="label label--small text--white">{{ meta.gps }}</span>{% endif %}
+            {% if fields contains 'filename' and meta.filename %}<span class="label label--small text--white">{{ meta.filename }}</span>{% endif %}
             {% if fields contains 'count' %}
-              {% if seq_position %}<span class="label label--small text--white">{{ seq_position }} / {{ folder_count }}</span>
-              {% else %}<span class="label label--small text--white">{{ folder_count }} photos</span>{% endif %}
+              {% if image.seq_position %}<span class="label label--small text--white">{{ image.seq_position }} / {{ image.folder_count }}</span>
+              {% else %}<span class="label label--small text--white">{{ image.folder_count }} photos</span>{% endif %}
             {% endif %}
           </div>
         </div>

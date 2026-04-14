@@ -24,13 +24,15 @@ variables:
         selection_mode: "random"
         canvas_mode: "false"
         metadata_fields: '["date","camera","exposure","count"]'
-  image_url: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/PNG_transparency_demonstration_1.png/280px-PNG_transparency_demonstration_1.png"
-  brightness_score: 72
-  image_path: "/Photos/Wallpapers/sample.png"
-  folder_count: 42
-  seq_position: 3
+  image:
+    url: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/PNG_transparency_demonstration_1.png/280px-PNG_transparency_demonstration_1.png"
+    path: "/Photos/Wallpapers/sample.png"
+    folder_count: 42
+    seq_position: 3
+    bg_class: "bg--gray-60"
   meta:
     date_ts: 1744588800
+    filename: "sample.png"
     camera: "Apple iPhone 15 Pro"
     exposure: "f/1.78 · 1/120s · ISO\u00A0400"
     focal: "24mm"

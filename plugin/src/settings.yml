@@ -72,12 +72,13 @@ custom_fields:
   description: Choose what appears in the overlay at the bottom of the image. Leave empty to hide the overlay.
   options:
   - Date taken: date
+  - Location: gps
   - Camera: camera
   - Exposure (f / shutter / ISO): exposure
   - Focal length: focal
   - Megapixels: dimensions
   - File size: filesize
-  - Location: gps
+  - Filename: filename
   - Photo count: count
   optional: true
 name: Nextcloud Images

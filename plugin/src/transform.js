@@ -25,14 +25,15 @@ function transform(data) {
 
   return {
     image: {
-      url:              data.image_url || null,
-      path:             data.image_path || '',
-      folder_count:     data.folder_count || 0,
-      seq_position:     data.seq_position || null,
-      brightness_score: m.brightness_score != null ? m.brightness_score : null,
+      url:          data.image_url || null,
+      path:         data.image_path || '',
+      folder_count: data.folder_count || 0,
+      seq_position: data.seq_position || null,
+      bg_class:     _bgClass(m.brightness_score),
     },
     meta: {
       date_ts:    m.date_ts || null,
+      filename:   data.image_path ? data.image_path.split('/').pop() : null,
       camera:     camera,
       aperture:   aperture,
       shutter:    shutter,
@@ -56,6 +57,31 @@ function _shutter(s) {
 function _fileSize(bytes) {
   if (bytes >= 1048576) return (bytes / 1048576).toFixed(1) + '\u00A0MB';
   return Math.round(bytes / 1024) + '\u00A0KB';
+}
+
+function _bgClass(score) {
+  if (score == null) return null;
+  const steps = [
+    [7,  'bg--black'],
+    [14, 'bg--gray-10'],
+    [20, 'bg--gray-15'],
+    [26, 'bg--gray-20'],
+    [32, 'bg--gray-25'],
+    [38, 'bg--gray-30'],
+    [44, 'bg--gray-35'],
+    [50, 'bg--gray-40'],
+    [56, 'bg--gray-45'],
+    [62, 'bg--gray-50'],
+    [68, 'bg--gray-55'],
+    [74, 'bg--gray-60'],
+    [80, 'bg--gray-65'],
+    [86, 'bg--gray-70'],
+    [94, 'bg--gray-75'],
+  ];
+  for (const [threshold, cls] of steps) {
+    if (score < threshold) return cls;
+  }
+  return 'bg--white';
 }
 
 function _gps(lat, lon) {
