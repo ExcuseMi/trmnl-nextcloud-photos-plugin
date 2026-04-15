@@ -15,8 +15,8 @@ custom_fields:
   name: About This Plugin
   field_type: author_bio
   description: Display images from your Nextcloud instance on your TRMNL e-paper display.<br><br><strong>Note:</strong> This plugin routes requests through a personal backend (<code>trmnl.bettens.dev</code>). This is required because Nextcloud images are protected by authentication — TRMNL cannot supply credentials when fetching images directly.<br><br>Your credentials are never stored and are only used to retrieve images on demand.
-  github_url: https://github.com/ExcuseMi/trmnl-nextcloud-images-plugin
-  category: images
+  github_url: https://github.com/ExcuseMi/trmnl-nextcloud-photos-plugin
+  category: images,album
   help_text: TRMNL X Ready
 - keyname: nextcloud_url
   field_type: url
@@ -82,5 +82,5 @@ custom_fields:
   - Parent folder: folder
   - Photo count: count
   optional: true
-name: Nextcloud Images
+name: Nextcloud Photos
 refresh_interval: 15
