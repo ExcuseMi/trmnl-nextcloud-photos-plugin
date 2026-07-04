@@ -36,6 +36,23 @@ def _dav_url(nextcloud_url: str, username: str, folder_path: str) -> str:
     return f"{base}/remote.php/dav/files/{username}/{folder}"
 
 
+async def fetch_original(
+    nextcloud_url: str,
+    username: str,
+    app_token: str,
+    file_path: str,
+) -> bytes:
+    """Download the original file bytes via WebDAV."""
+    url = _dav_url(nextcloud_url, username, file_path)
+    auth = aiohttp.BasicAuth(username, app_token)
+    async with aiohttp.ClientSession() as session:
+        async with session.get(
+            url, auth=auth, timeout=aiohttp.ClientTimeout(total=60)
+        ) as resp:
+            resp.raise_for_status()
+            return await resp.read()
+
+
 async def list_images(
     nextcloud_url: str,
     username: str,

@@ -1,12 +1,14 @@
 import asyncio
+import io
 import logging
 import os
 from urllib.parse import quote, unquote
 
 import aiohttp
+from PIL import Image, ImageOps
 from quart import Quart, Response, jsonify, request
 
-from modules.providers.nextcloud import fetch_photo_metadata, list_images
+from modules.providers.nextcloud import fetch_original, fetch_photo_metadata, list_images
 from modules.utils.geocode import reverse_geocode
 from modules.utils.ip_whitelist import init_ip_whitelist, require_trmnl_ip
 from modules.utils.state import init_db, instance_key, pick_image
@@ -90,6 +92,7 @@ async def image():
         f"&nextcloud_url={quote(nextcloud_url)}"
         f"&username={quote(username)}"
         f"&token={quote(token)}"
+        f"&path={quote(selected['path'])}"
         f"&w={width}&h={height}"
     )
 
@@ -133,6 +136,7 @@ async def image_preview():
     nextcloud_url = request.args.get('nextcloud_url', '')
     username = request.args.get('username', '')
     token = request.args.get('token', '')
+    path = unquote(request.args.get('path', ''))
     width = request.args.get('w', '800')
     height = request.args.get('h', '480')
 
@@ -151,7 +155,14 @@ async def image_preview():
         resp.raise_for_status()
     except Exception as e:
         await session.close()
-        log.error('Preview fetch failed: %s', e)
+        log.warning('Nextcloud preview generation failed for %s: %s', path or file_id, e)
+        if path:
+            try:
+                data = await fetch_original(nextcloud_url, username, token, path)
+                resized = _resize_jpeg(data, int(width), int(height))
+                return Response(resized, content_type='image/jpeg')
+            except Exception:
+                log.exception('Fallback to original image also failed for %s', path)
         return 'preview unavailable', 502
 
     content_type = resp.headers.get('Content-Type', 'image/jpeg')
@@ -165,6 +176,18 @@ async def image_preview():
             await session.close()
 
     return Response(generate(), content_type=content_type)
+
+
+def _resize_jpeg(data: bytes, width: int, height: int) -> bytes:
+    """Downscale raw image bytes to fit within width x height, re-encoded as JPEG."""
+    img = Image.open(io.BytesIO(data))
+    img = ImageOps.exif_transpose(img)
+    img.thumbnail((width, height), Image.LANCZOS)
+    if img.mode not in ('RGB', 'L'):
+        img = img.convert('RGB')
+    buf = io.BytesIO()
+    img.save(buf, format='JPEG', quality=85)
+    return buf.getvalue()
 
 
 def _error(message: str):
