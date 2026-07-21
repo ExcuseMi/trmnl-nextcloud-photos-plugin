@@ -51,26 +51,26 @@ async def image():
     height = int(device.get('height', 480))
 
     if not (nextcloud_url and username and token):
-        return _error('Missing nextcloud_url, username, or token'), 400
+        return _error('Missing nextcloud_url, username, or token')
 
     try:
         images = await list_images(nextcloud_url, username, token, folder, recursive=recursive)
     except aiohttp.ClientResponseError as e:
         if e.status == 401:
-            return _error('Nextcloud authentication failed — check username and app token'), 401
+            return _error('Nextcloud authentication failed — check username and app token')
         if e.status == 404:
-            return _error(f'Folder not found: {folder}'), 404
+            return _error(f'Folder not found: {folder}')
         if e.status in (502, 503):
-            return _error('Nextcloud unavailable'), 503
+            return _error('Nextcloud unavailable')
         log.error('Nextcloud PROPFIND error %s: %s', e.status, e.message)
-        return _error(f'Nextcloud error {e.status}'), 502
+        return _error(f'Nextcloud error {e.status}')
     except aiohttp.ClientConnectorError:
-        return _error(f'Could not connect to Nextcloud at {nextcloud_url}'), 502
+        return _error(f'Could not connect to Nextcloud at {nextcloud_url}')
     except aiohttp.ServerTimeoutError:
-        return _error('Nextcloud connection timed out'), 504
+        return _error('Nextcloud connection timed out')
     except Exception as e:
         log.exception('Error listing images')
-        return _error(str(e)), 500
+        return _error(str(e))
 
     if not images:
         return _error(f'No images found in {folder}')
@@ -81,7 +81,7 @@ async def image():
         selected = await pick_image(images, mode, key)
     except Exception as e:
         log.exception('Error picking image')
-        return _error(str(e)), 500
+        return _error(str(e))
 
     if not selected:
         return _error(f'No images found in {folder}')
