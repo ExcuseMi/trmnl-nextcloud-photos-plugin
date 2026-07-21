@@ -12,5 +12,13 @@
       "image_url": null,
       "image_path": ""
     }
+  },
+  {
+    "name": "blank plugin settings",
+    "input": {
+      "image_url": null,
+      "image_path": "",
+      "error": "Missing nextcloud_url, username, or token"
+    }
   }
 ]

@@ -1,3 +1,7 @@
+const FRIENDLY_ERRORS = {
+  'Missing nextcloud_url, username, or token': 'Not configured yet — add your Nextcloud URL, username, and app token in the plugin settings.',
+};
+
 function transform(data) {
   const m = data.metadata || {};
 
@@ -45,7 +49,7 @@ function transform(data) {
       file_size:  fileSize,
       gps:        gps,
     },
-    error: data.error || null,
+    error: FRIENDLY_ERRORS[data.error] || data.error || null,
   };
 }
 

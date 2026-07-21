@@ -5,11 +5,31 @@ dark_mode: 'no'
 static_data: ''
 polling_verb: post
 framework_version: 2.3.7
-serverless_language: ''
+serverless_language: node
 polling_url: "{{ trmnl.plugin_settings.custom_fields_values.backend_url | default: 'https://trmnl.bettens.dev/nextcloud/image' }}"
 polling_headers: 'Content-Type: application/json'
 polling_body: '{"nextcloud_url":"{{ trmnl.plugin_settings.custom_fields_values.nextcloud_url }}","username":"{{ trmnl.plugin_settings.custom_fields_values.username }}","token":"{{ trmnl.plugin_settings.custom_fields_values.app_token }}","folder":"{{ trmnl.plugin_settings.custom_fields_values.folder_path }}","mode":"{{ trmnl.plugin_settings.custom_fields_values.selection_mode }}","recursive":"{{ trmnl.plugin_settings.custom_fields_values.recursive }}","device":{"width":{{ trmnl.device.width | default: 800 }},"height":{{ trmnl.device.height | default: 480 }}}}'
 id: 285470
+oauth_enabled: 'false'
+oauth_pkce_enabled: 'no'
+oauth_authorize_url: ''
+oauth_token_url: ''
+oauth_scopes: ''
+oauth_scope_separator: ''
+oauth_refresh_url: ''
+oauth_auth_params: ''
+oauth_token_headers: ''
+oauth_token_site: ''
+oauth_token_params: ''
+oauth_token_request_auth_method: ''
+oauth_body_format: ''
+oauth_token_response_metadata: ''
+oauth_authorization_method: ''
+oauth_refresh_params: ''
+oauth_token_field_name: ''
+oauth_expiry_field_name: ''
+oauth_expiry_strategy: ''
+oauth_fixed_expiry_ms: ''
 custom_fields:
 - keyname: author_info
   name: About This Plugin
@@ -89,6 +109,5 @@ custom_fields:
   placeholder: https://trmnl.bettens.dev/nextcloud/image
   default: https://trmnl.bettens.dev/nextcloud/image
   optional: true
-
 name: Nextcloud Photos
 refresh_interval: 15
