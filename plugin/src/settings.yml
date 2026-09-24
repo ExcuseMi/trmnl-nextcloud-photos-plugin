@@ -6,6 +6,7 @@ static_data: ''
 polling_verb: post
 framework_version: 2.3.7
 serverless_language: node
+refresh_interval_floor:
 polling_url: "{{ backend_url | default: trmnl.plugin_settings.custom_fields_values.backend_url | default: 'https://trmnl.bettens.dev/nextcloud/image' }}"
 polling_headers: 'Content-Type: application/json'
 polling_body: '{"nextcloud_url":"{{ nextcloud_url | default: trmnl.plugin_settings.custom_fields_values.nextcloud_url }}","username":"{{ username | default: trmnl.plugin_settings.custom_fields_values.username }}","token":"{{ app_token | default: trmnl.plugin_settings.custom_fields_values.app_token }}","folder":"{{ folder_path | default: trmnl.plugin_settings.custom_fields_values.folder_path }}","mode":"{{ selection_mode | default: trmnl.plugin_settings.custom_fields_values.selection_mode }}","recursive":"{{ recursive | default: trmnl.plugin_settings.custom_fields_values.recursive }}","device":{"width":{{ trmnl.device.width | default: 800 }},"height":{{ trmnl.device.height | default: 480 }}}}'
